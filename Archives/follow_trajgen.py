@@ -58,12 +58,18 @@ async def main():
     
     # Recapture
     await c.set_recapture_position_velocity()
-    
+
     # Stopping the motor at desired position for 4 sec using PD controller
     time_start = time.time()
     current_time = time_start
-    while(current_time < time_start + 4):
+    while(current_time < time_start + 6):
+        time_start_command = time.time()
         state = await c.set_position(position=0.5, maximum_torque=0.2, kp_scale=1.0, kd_scale=2.0, query=True)
+        torque_actual_list.append(state.values[moteus.Register.TORQUE])
+        q_actual_list_degrees.append(state.values[moteus.Register.POSITION] * 360)
+        qd_actual_list.append(state.values[moteus.Register.VELOCITY] * (2*math.pi))
+        time_end_command = time.time()
+        await asyncio.sleep(dt - (time_end_command - time_start_command))
         current_time = time.time()
 
     # Shutting down motor
@@ -78,14 +84,14 @@ async def main():
     # Plotting the data
     fig, ax = plt.subplots()
     ax.set_title("Followed Trajectory: Torque vs Time")
-    ax.plot(np.arange(0, N_traj-1) * dt, torque_actual_list, "-")
+    ax.plot(np.arange(0, N_traj-1 + (6/dt - 14)) * dt, torque_actual_list, "-")
     ax.set_xlabel("Time (s)")
     ax.set_ylabel("Torque (N/m)")
     plt.show()
 
     fig, ax = plt.subplots()
     ax.set_title("Followed Trajectory: Angular Position vs Time")
-    ax.plot(np.arange(0, N_traj-1) * dt, q_actual_list_degrees, "-")
+    ax.plot(np.arange(0, N_traj-1 + (6/dt - 14)) * dt, q_actual_list_degrees, "-")
     ax.set_xlabel("Time (s)")
     ax.set_ylabel("Angular Position (rad)")
     plt.show()
